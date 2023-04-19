@@ -19,9 +19,9 @@
          (double) (tv2.tv_sec - tv1.tv_sec);                           \
     } while (0)
 
-const double a = 0.1;
-const double b = 0.2;
-const double c = 0.3;
+const double a = 0.3;
+const double b = 0.5;
+const double c = 0.4;
 
 /* We split up the stencil in smaller stencils, of roughly SPACEBLOCK size,
  * and treat them for TIMEBLOCK iterations. Play around with these. Do the considerations
@@ -40,7 +40,7 @@ void Left(double **in, double **out, size_t n, int iterations)
             (*out)[i] = a * (*in)[i - 1] + b * (*in)[i] + c * (*in)[i + 1];
         }
 
-        if (t != iterations - 1) {
+        if (t != iterations) {
             double *temp = *in;
             *in = *out;
             *out = temp;
@@ -58,12 +58,13 @@ void Middle(double **in, double **out, size_t n, int iterations)
             (*out)[i] = a * (*in)[i - 1] + b * (*in)[i] + c * (*in)[i + 1];
         }
 
-        if (t != iterations - 1) {
+        if (t != iterations) {
             double *temp = *in;
             *in = *out;
             *out = temp;
         }
     }
+
 }
 
 /* Takes buffers *in, *out of size n + iterations.
@@ -78,7 +79,7 @@ void Right(double **in, double **out, size_t n, int iterations)
             (*out)[i] = a * (*in)[i - 1] + b * (*in)[i] + c * (*in)[i + 1];
         }
 
-        if (t != iterations - 1) {
+        if (t != iterations) {
             double *temp = *in;
             *in = *out;
             *out = temp;
@@ -115,20 +116,26 @@ void StencilBlocked(double **in, double **out, size_t n, int iterations)
 
 void Stencil(double **in, double **out, size_t n, int iterations)
 {
-    for (int t = TIMEBLOCK; t <= iterations; t += TIMEBLOCK) {
+    int rest_iters = iterations % TIMEBLOCK;
+    if (rest_iters != 0) {
+        fprintf(stderr, "rest iter\n");
+        StencilBlocked(in, out, n, rest_iters);
+        double *temp = *out;
+        *out = *in;
+        *in = temp;
+    }
+
+    for (int t = rest_iters; t < iterations; t += TIMEBLOCK) {
+        fprintf(stderr, "%d\n", t);
         StencilBlocked(in, out, n, TIMEBLOCK);
         double *temp = *out;
         *out = *in;
         *in = temp;
     }
-    if (iterations % TIMEBLOCK != 0) {
-        StencilBlocked(in, out, n, iterations % TIMEBLOCK);
-    } else {
-        /* We did one buffer swap too many */
-        double *temp = *out;
-        *out = *in;
-        *in = temp;
-    }
+
+    double *temp = *out;
+    *out = *in;
+    *in = temp;
 }
 
 void StencilSlow(double **in, double **out, size_t n, int iterations)
@@ -157,15 +164,7 @@ void StencilSlow(double **in, double **out, size_t n, int iterations)
 bool equal(double *x, double *y, size_t n, double error)
 {
     for (size_t i = 0; i < n; i++) {
-        if (fabs(x[i]) < error) {
-            if (fabs(x[i]) > error) {
-                printf("Index %zu: %lf != %lf\n", i, x[i], y[i]);
-                return false;
-            } else {
-                continue;
-            }
-        }
-        if (fabs((x[i] - y[i]) / x[i]) > error) {
+        if (fabs(x[i] - y[i]) > error) {
             printf("Index %zu: %lf != %lf\n", i, x[i], y[i]);
             return false;
         }
@@ -193,26 +192,32 @@ int main(int argc, char **argv)
 
     double *in = calloc(n, sizeof(double));
     in[0] = 100;
+    in[n / 2] = n;
     in[n - 1] = 1000;
     double *out = malloc(n * sizeof(double));
-    double *out2 = malloc(n * sizeof(double));
 
     double duration;
     TIME(duration, Stencil(&in, &out, n, iterations););
-    printf("Fast version took took %lfs, or ??? Gflops/s\n", duration);
+    printf("Faster version took %lfs, or ??? Gflops/s\n", duration);
 
 #ifdef CHECK
-    TIME(duration, StencilSlow(&in, &out2, n, iterations););
-    printf("Slow version took took %lfs, or ??? Gflops/s\n", duration);
-    printf("Checking whether they computed the same result with relative error 0.0001...\n");
-    if (equal(out, out2, n, 0.0001)) {
+    double *in2 = calloc(n, sizeof(double));
+    in2[0] = 100;
+    in2[n / 2] = n;
+    in2[n - 1] = 1000;
+    double *out2 = malloc(n * sizeof(double));
+    TIME(duration, StencilSlow(&in2, &out2, n, iterations););
+    printf("Slow version took %lfs, or ??? Gflops/s\n", duration);
+    printf("Checking whether they computed the same result with error 0.0000...\n");
+    if (equal(out, out2, n, 0.0000)) {
         printf("They are (roughly) equal\n");
     }
+    free(in2);
+    free(out2);
 #endif
 
     free(in);
     free(out);
-    free(out2);
 
     return EXIT_SUCCESS;
 }
