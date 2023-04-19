@@ -3,6 +3,8 @@
 #include <sys/time.h>
 #include <immintrin.h>
 
+#define REAL double
+
 /* You may need a different method of timing if you are not on Linux. */
 #define TIME(duration, fncalls)                                        \
     do {                                                               \
@@ -10,15 +12,15 @@
         gettimeofday(&tv1, NULL);                                      \
         fncalls                                                        \
         gettimeofday(&tv2, NULL);                                      \
-        duration = (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 +    \
-         (double) (tv2.tv_sec - tv1.tv_sec);                           \
+        duration = (REAL) (tv2.tv_usec - tv1.tv_usec) / 1000000 +    \
+         (REAL) (tv2.tv_sec - tv1.tv_sec);                           \
     } while (0)
 
-const double a = 0.1;
-const double b = 0.2;
-const double c = 0.3;
+const REAL a = 0.1;
+const REAL b = 0.2;
+const REAL c = 0.3;
 
-void Stencil(double **in, double **out, size_t n, int iterations)
+void Stencil(REAL **in, REAL **out, size_t n, int iterations)
 {
     (*out)[0] = (*in)[0];
     (*out)[n - 1] = (*in)[n - 1];
@@ -33,7 +35,7 @@ void Stencil(double **in, double **out, size_t n, int iterations)
 
         /* The output of this iteration is the input of the next iteration (if there is one). */
         if (t != iterations) {
-            double *temp = *in;
+            REAL *temp = *in;
             *in = *out;
             *out = temp;
         }
@@ -50,10 +52,10 @@ int main(int argc, char **argv)
     size_t n = atoll(argv[1]);
     int iterations = atoi(argv[2]);
 
-    double *in = calloc(n, sizeof(double));
+    REAL *in = calloc(n, sizeof(REAL));
     in[0] = 100;
     in[n - 1] = 1000;
-    double *out = malloc(n * sizeof(double));
+    REAL *out = malloc(n * sizeof(REAL));
 
     double duration;
     TIME(duration, Stencil(&in, &out, n, iterations););

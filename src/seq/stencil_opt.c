@@ -6,7 +6,7 @@
 #include <math.h>
 #include <sys/time.h>
 
-#define CHECK
+#define REAL double // You can change this to float for less precision
 
 /* You may need a different method of timing if you are not on Linux. */
 #define TIME(duration, fncalls)                                        \
@@ -15,13 +15,13 @@
         gettimeofday(&tv1, NULL);                                      \
         fncalls                                                        \
         gettimeofday(&tv2, NULL);                                      \
-        duration = (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 +    \
-         (double) (tv2.tv_sec - tv1.tv_sec);                           \
+        duration = (REAL) (tv2.tv_usec - tv1.tv_usec) / 1000000 +    \
+         (REAL) (tv2.tv_sec - tv1.tv_sec);                           \
     } while (0)
 
-const double a = 0.3;
-const double b = 0.5;
-const double c = 0.4;
+const REAL a = 0.3;
+const REAL b = 0.5;
+const REAL c = 0.4;
 
 /* We split up the stencil in smaller stencils, of roughly SPACEBLOCK size,
  * and treat them for TIMEBLOCK iterations. Play around with these. Do the considerations
@@ -31,7 +31,7 @@ const int TIMEBLOCK = 100;
 
 /* Takes buffers *in, *out of size n + iterations.
  * out[0: n - 1] is the first part of the stencil of in[0, n + iterations - 1]. */
-void Left(double **in, double **out, size_t n, int iterations)
+void Left(REAL **in, REAL **out, size_t n, int iterations)
 {
     (*out)[0] = (*in)[0];
 
@@ -41,7 +41,7 @@ void Left(double **in, double **out, size_t n, int iterations)
         }
 
         if (t != iterations) {
-            double *temp = *in;
+            REAL *temp = *in;
             *in = *out;
             *out = temp;
         }
@@ -51,7 +51,7 @@ void Left(double **in, double **out, size_t n, int iterations)
 /* Takes buffers *in, *out of size n + 2 * iterations.
  * out[iterations: n + iterations - 1] is the
  * middle part of the stencil of in[0, n + 2 * iterations - 1]. */
-void Middle(double **in, double **out, size_t n, int iterations)
+void Middle(REAL **in, REAL **out, size_t n, int iterations)
 {
     for (int t = 1; t <= iterations; t++) {
         for (size_t i = t; i < n + 2 * iterations - t; i++) {
@@ -59,7 +59,7 @@ void Middle(double **in, double **out, size_t n, int iterations)
         }
 
         if (t != iterations) {
-            double *temp = *in;
+            REAL *temp = *in;
             *in = *out;
             *out = temp;
         }
@@ -70,7 +70,7 @@ void Middle(double **in, double **out, size_t n, int iterations)
 /* Takes buffers *in, *out of size n + iterations.
  * out[iterations: n + iterations - 1] is the last part of
  * the stencil of in[0, n + iterations - 1]. */
-void Right(double **in, double **out, size_t n, int iterations)
+void Right(REAL **in, REAL **out, size_t n, int iterations)
 {
     (*out)[n + iterations - 1] = (*in)[n + iterations - 1];
 
@@ -80,33 +80,33 @@ void Right(double **in, double **out, size_t n, int iterations)
         }
 
         if (t != iterations) {
-            double *temp = *in;
+            REAL *temp = *in;
             *in = *out;
             *out = temp;
         }
     }
 }
 
-void StencilBlocked(double **in, double **out, size_t n, int iterations)
+void StencilBlocked(REAL **in, REAL **out, size_t n, int iterations)
 {
-    double *inBuffer = malloc((SPACEBLOCK + 2 * iterations) * sizeof(double));
-    double *outBuffer = malloc((SPACEBLOCK + 2 * iterations) * sizeof(double));
+    REAL *inBuffer = malloc((SPACEBLOCK + 2 * iterations) * sizeof(REAL));
+    REAL *outBuffer = malloc((SPACEBLOCK + 2 * iterations) * sizeof(REAL));
 
     for (size_t block = 0; block < n / SPACEBLOCK; block++) {
         if (block == 0) {
-            memcpy(inBuffer, *in, (SPACEBLOCK + iterations) * sizeof(double));
+            memcpy(inBuffer, *in, (SPACEBLOCK + iterations) * sizeof(REAL));
             Left(&inBuffer, &outBuffer, SPACEBLOCK, iterations);
-            memcpy(*out, outBuffer, SPACEBLOCK * sizeof(double));
+            memcpy(*out, outBuffer, SPACEBLOCK * sizeof(REAL));
         } else if (block == n / SPACEBLOCK - 1) {
             memcpy(inBuffer, *in + block * SPACEBLOCK - iterations,
-                    (SPACEBLOCK + iterations) * sizeof(double));
+                    (SPACEBLOCK + iterations) * sizeof(REAL));
             Right(&inBuffer, &outBuffer, SPACEBLOCK, iterations);
-            memcpy(*out + block * SPACEBLOCK, outBuffer + iterations, SPACEBLOCK * sizeof(double));
+            memcpy(*out + block * SPACEBLOCK, outBuffer + iterations, SPACEBLOCK * sizeof(REAL));
         } else {
             memcpy(inBuffer, *in + block * SPACEBLOCK - iterations,
-                    (SPACEBLOCK + 2 * iterations) * sizeof(double));
+                    (SPACEBLOCK + 2 * iterations) * sizeof(REAL));
             Middle(&inBuffer, &outBuffer, SPACEBLOCK, iterations);
-            memcpy(*out + block * SPACEBLOCK, outBuffer + iterations, SPACEBLOCK * sizeof(double));
+            memcpy(*out + block * SPACEBLOCK, outBuffer + iterations, SPACEBLOCK * sizeof(REAL));
         }
     }
 
@@ -114,31 +114,29 @@ void StencilBlocked(double **in, double **out, size_t n, int iterations)
     free(outBuffer);
 }
 
-void Stencil(double **in, double **out, size_t n, int iterations)
+void Stencil(REAL **in, REAL **out, size_t n, int iterations)
 {
     int rest_iters = iterations % TIMEBLOCK;
     if (rest_iters != 0) {
-        fprintf(stderr, "rest iter\n");
         StencilBlocked(in, out, n, rest_iters);
-        double *temp = *out;
+        REAL *temp = *out;
         *out = *in;
         *in = temp;
     }
 
     for (int t = rest_iters; t < iterations; t += TIMEBLOCK) {
-        fprintf(stderr, "%d\n", t);
         StencilBlocked(in, out, n, TIMEBLOCK);
-        double *temp = *out;
+        REAL *temp = *out;
         *out = *in;
         *in = temp;
     }
 
-    double *temp = *out;
+    REAL *temp = *out;
     *out = *in;
     *in = temp;
 }
 
-void StencilSlow(double **in, double **out, size_t n, int iterations)
+void StencilSlow(REAL **in, REAL **out, size_t n, int iterations)
 {
     (*out)[0] = (*in)[0];
     (*out)[n - 1] = (*in)[n - 1];
@@ -153,7 +151,7 @@ void StencilSlow(double **in, double **out, size_t n, int iterations)
 
         /* The output of this iteration is the input of the next iteration (if there is one). */
         if (t != iterations) {
-            double *temp = *in;
+            REAL *temp = *in;
             *in = *out;
             *out = temp;
         }
@@ -161,7 +159,7 @@ void StencilSlow(double **in, double **out, size_t n, int iterations)
 }
 
 #ifdef CHECK
-bool equal(double *x, double *y, size_t n, double error)
+bool equal(REAL *x, REAL *y, size_t n, REAL error)
 {
     for (size_t i = 0; i < n; i++) {
         if (fabs(x[i] - y[i]) > error) {
@@ -190,22 +188,22 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    double *in = calloc(n, sizeof(double));
+    REAL *in = calloc(n, sizeof(REAL));
     in[0] = 100;
     in[n / 2] = n;
     in[n - 1] = 1000;
-    double *out = malloc(n * sizeof(double));
+    REAL *out = malloc(n * sizeof(REAL));
 
     double duration;
     TIME(duration, Stencil(&in, &out, n, iterations););
     printf("Faster version took %lfs, or ??? Gflops/s\n", duration);
 
 #ifdef CHECK
-    double *in2 = calloc(n, sizeof(double));
+    REAL *in2 = calloc(n, sizeof(REAL));
     in2[0] = 100;
     in2[n / 2] = n;
     in2[n - 1] = 1000;
-    double *out2 = malloc(n * sizeof(double));
+    REAL *out2 = malloc(n * sizeof(REAL));
     TIME(duration, StencilSlow(&in2, &out2, n, iterations););
     printf("Slow version took %lfs, or ??? Gflops/s\n", duration);
     printf("Checking whether they computed the same result with error 0.0000...\n");
