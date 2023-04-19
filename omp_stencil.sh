@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#SBATCH --account=csmpi
+#SBATCH --account=csmpistud
 #SBATCH --cpus-per-task=32
 #SBATCH --partition=csmpi_fpga_short
 #SBATCH --time=00:05:00
