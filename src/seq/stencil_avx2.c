@@ -26,8 +26,8 @@ const double c = 0.4;
 /* We split up the stencil in smaller stencils, of roughly SPACEBLOCK size,
  * and treat them for TIMEBLOCK iterations. Play around with these. Do the considerations
  * change when parallelising? */
-const int SPACEBLOCK = 1250;
-const int TIMEBLOCK = 100;
+const int SPACEBLOCK = 15000;
+const int TIMEBLOCK = 300;
 
 /* Takes buffers *in, *out of size n + iterations.
  * out[0: n - 1] is the first part of the stencil of in[0, n + iterations - 1]. */
@@ -49,7 +49,7 @@ void Left(double **in, double **out, size_t n, int iterations)
 }
 
 /* This version is written with avx2 in mind. Each vector register can fit 4 doubles.
- * So we need 3 loads (in[i - 1], in[i], in[i + 1]) and one load (out[i]) to calculate
+ * So we need 3 loads (in[i - 1], in[i], in[i + 1]) and one store (out[i]) to calculate
  * out[i] for i, i + 1, i + 2, i + 3. This takes 3 instructions.
  *
  * Instead, we can calculate 3 iterations at a time. That means out[i] is a linear combination
