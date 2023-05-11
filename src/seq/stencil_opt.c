@@ -136,42 +136,6 @@ void Stencil(REAL **in, REAL **out, size_t n, int iterations)
     *in = temp;
 }
 
-void StencilSlow(REAL **in, REAL **out, size_t n, int iterations)
-{
-    (*out)[0] = (*in)[0];
-    (*out)[n - 1] = (*in)[n - 1];
-
-    for (int t = 1; t <= iterations; t++) {
-        /* Update only the inner values. */
-        for (int i = 1; i < n - 1; i++) {
-            (*out)[i] = a * (*in)[i - 1] +
-                        b * (*in)[i] +
-                        c * (*in)[i + 1];
-        }
-
-        /* The output of this iteration is the input of the next iteration (if there is one). */
-        if (t != iterations) {
-            REAL *temp = *in;
-            *in = *out;
-            *out = temp;
-        }
-    }
-}
-
-#ifdef CHECK
-bool equal(REAL *x, REAL *y, size_t n, REAL error)
-{
-    for (size_t i = 0; i < n; i++) {
-        if (fabs(x[i] - y[i]) > error) {
-            printf("Index %zu: %lf != %lf\n", i, x[i], y[i]);
-            return false;
-        }
-    }
-
-    return true;
-}
-#endif
-
 int main(int argc, char **argv)
 {
     if (argc != 3) {
@@ -196,23 +160,7 @@ int main(int argc, char **argv)
 
     double duration;
     TIME(duration, Stencil(&in, &out, n, iterations););
-    printf("Faster version took %lfs, or ??? Gflops/s\n", duration);
-
-#ifdef CHECK
-    REAL *in2 = calloc(n, sizeof(REAL));
-    in2[0] = 100;
-    in2[n / 2] = n;
-    in2[n - 1] = 1000;
-    REAL *out2 = malloc(n * sizeof(REAL));
-    TIME(duration, StencilSlow(&in2, &out2, n, iterations););
-    printf("Slow version took %lfs, or ??? Gflops/s\n", duration);
-    printf("Checking whether they computed the same result with error 0.0000...\n");
-    if (equal(out, out2, n, 0.0000)) {
-        printf("They are (roughly) equal\n");
-    }
-    free(in2);
-    free(out2);
-#endif
+    printf("%lf Gflops/s\n", 5.0 * (n - 2) * iterations / 1e9 / duration);
 
     free(in);
     free(out);

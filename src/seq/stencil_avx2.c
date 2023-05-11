@@ -6,8 +6,6 @@
 #include <math.h>
 #include <sys/time.h>
 
-//#define CHECK
-
 /* You may need a different method of timing if you are not on Linux. */
 #define TIME(duration, fncalls)                                        \
     do {                                                               \
@@ -26,8 +24,8 @@ const double c = 0.4;
 /* We split up the stencil in smaller stencils, of roughly SPACEBLOCK size,
  * and treat them for TIMEBLOCK iterations. Play around with these. Do the considerations
  * change when parallelising? */
-const int SPACEBLOCK = 15000;
-const int TIMEBLOCK = 300;
+const int SPACEBLOCK = 1250;
+const int TIMEBLOCK = 100;
 
 /* Takes buffers *in, *out of size n + iterations.
  * out[0: n - 1] is the first part of the stencil of in[0, n + iterations - 1]. */
@@ -237,42 +235,6 @@ void Stencil(double **in, double **out, size_t n, int iterations)
     *in = temp;
 }
 
-void StencilSlow(double **in, double **out, size_t n, int iterations)
-{
-    (*out)[0] = (*in)[0];
-    (*out)[n - 1] = (*in)[n - 1];
-
-    for (int t = 1; t <= iterations; t++) {
-        /* Update only the inner values. */
-        for (int i = 1; i < n - 1; i++) {
-            (*out)[i] = a * (*in)[i - 1] +
-                        b * (*in)[i] +
-                        c * (*in)[i + 1];
-        }
-
-        /* The output of this iteration is the input of the next iteration (if there is one). */
-        if (t != iterations) {
-            double *temp = *in;
-            *in = *out;
-            *out = temp;
-        }
-    }
-}
-
-#ifdef CHECK
-bool equal(double *x, double *y, size_t n, double error)
-{
-    for (size_t i = 0; i < n; i++) {
-        if (fabs(x[i] - y[i]) > error) {
-            printf("Index %zu: %lf != %lf\n", i, x[i], y[i]);
-            return false;
-        }
-    }
-
-    return true;
-}
-#endif
-
 int main(int argc, char **argv)
 {
     if (argc != 3) {
@@ -297,23 +259,7 @@ int main(int argc, char **argv)
 
     double duration;
     TIME(duration, Stencil(&in, &out, n, iterations););
-    printf("Faster version took %lfs, or ??? Gflops/s\n", duration);
-
-#ifdef CHECK
-    double *in2 = calloc(n, sizeof(double));
-    in2[0] = 100;
-    in2[n / 2] = n;
-    in2[n - 1] = 1000;
-    double *out2 = malloc(n * sizeof(double));
-    TIME(duration, StencilSlow(&in2, &out2, n, iterations););
-    printf("Slow version took %lfs, or ??? Gflops/s\n", duration);
-    printf("Checking whether they computed the same result with error 0.0001...\n");
-    if (equal(out, out2, n, 0.0001)) {
-        printf("They are (roughly) equal\n");
-    }
-    free(in2);
-    free(out2);
-#endif
+    printf("%lf Gflops/s\n", 5.0 * (n - 2) * iterations / 1e9 / duration);
 
     free(in);
     free(out);
