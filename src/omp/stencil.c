@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <omp.h>
 #include <sys/time.h>
 #include <immintrin.h>
 
@@ -27,6 +28,7 @@ void Stencil(REAL **in, REAL **out, size_t n, int iterations)
 
     for (int t = 1; t <= iterations; t++) {
         /* Update only the inner values. */
+        #pragma omp parallel for
         for (int i = 1; i < n - 1; i++) {
             (*out)[i] = a * (*in)[i - 1] +
                         b * (*in)[i] +
@@ -59,8 +61,7 @@ int main(int argc, char **argv)
 
     double duration;
     TIME(duration, Stencil(&in, &out, n, iterations););
-    printf("%lf", duration,
-            5.0 * (n - 2) * iterations / 1e9 / duration);
+    printf("%lf", 5.0 * (n - 2) * iterations / 1e9 / duration);
 
     free(in);
     free(out);

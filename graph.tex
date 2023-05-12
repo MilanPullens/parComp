@@ -8,9 +8,10 @@
 
 \begin{document}
 
+% Consider using loglogaxis
 \begin{figure}[ht]
     \begin{tikzpicture}
-        \begin{loglogaxis}[
+        \begin{semilogxaxis}[
             xlabel=threads,
             ylabel=Gflops/s,
             legend pos = north west,
@@ -18,9 +19,32 @@
             yticklabel style={/pgf/number format/fixed},
             xtick = {1, 2, 4, 8, 16, 32},
             xticklabels = {1, 2, 4, 8, 16, 32},
-            ytick = {10, 20, 40, 80, 160, 320, 640},
-            yticklabels = {10, 20, 40, 80, 160, 320, 640},
+            ytick = {200, 400, 600, 800, 1000},
+            yticklabels = {200, 400, 600, 800, 1000},
         ]
+
+            \addplot+ [
+                error bars/.cd,
+                    y explicit,
+                    y dir=both,
+            ] table [
+                x=P,
+                y=mean,
+                y error plus expr=\thisrow{max}-\thisrow{mean},
+                y error minus expr=\thisrow{mean}-\thisrow{min},
+            ] {results/stencil.csv};
+
+            \addplot+ [
+                error bars/.cd,
+                    y explicit,
+                    y dir=both,
+            ] table [
+                x=P,
+                y=mean,
+                y error plus expr=\thisrow{max}-\thisrow{mean},
+                y error minus expr=\thisrow{mean}-\thisrow{min},
+            ] {results/stencil_opt.csv};
+
             \addplot+ [
                 error bars/.cd,
                     y explicit,
@@ -32,13 +56,15 @@
                 y error minus expr=\thisrow{mean}-\thisrow{min},
             ] {results/stencil_avx2.csv};
 
-            \legend{avx2}
-        \end{loglogaxis}
+            \legend{naive, optimised, optimised + avx2}
+        \end{semilogxaxis}
     \end{tikzpicture}
-    \caption{Compute rate in Gflops/s for the avx2 version of a three-point stencil. Input size is
-             $9990000$ or about $800$ MB per vector, for $300$ iterations. Averaged over $10$ runs,
-             with error bars from the slowest to fastest run.}
-    \label{fig:avx2}
+    \caption{Compute rate in Gflops/s for three differnet versions of a three-point stencil. Input size is
+             $99900000$ or about $800$ MB per vector for the naive implementation, and $999000000$ or $8$ GB,
+             for the other implementations. All versions use $300$ iterations. Averaged over $10$ runs,
+             with error bars from the slowest to fastest run. The first one is a naive version, the second one
+             is optimised for reuse in the L2 cache, and the last one is optimised for reuse on the register level
+             as well, using avx2 instructions.}
 \end{figure}
 
 \end{document}

@@ -15,7 +15,7 @@ in Ubuntu. On the cluster everything is already installed.
 
 Put your sequential programs in src/seq, your OpenMP programs in src/omp,
 your MPI programs in src/mpi.
-Compile with make and find your programs in bin/ with suffixes \_seq, \_omp, \_mpi
+Compile with make and find your programs in bin/ with suffixes _seq, _omp, _mpi
 
 # Experiments on the cluster
 
@@ -27,16 +27,28 @@ ssh slurm22
 ```
 
 and request resources from there. This is done through SLURM, look up the
-documentation. omp\_hello.sh is a simple example script. Submit these
+documentation. omp_hello.sh is a simple example script. Submit these
 using sbatch, so
 
 ```
-sbatch omp\_hello.sh
+sbatch omp_hello.sh
 ```
 
 With MPI, you have to be careful how you allocate resources, to make sure
 you do not schedule multiple ranks on one physical core (CPUs i and i + 8 are
-the same physical core). The script mpi\_hello.sh generates SLURM scripts from
-mpi\_hello.sh.template and submits them.
+the same physical core). The script mpi_hello.sh generates SLURM scripts from
+mpi_hello.sh.template and submits them.
 
 scp is a useful command to get files to and from the cluster.
+
+# Example solution OpenMP
+For the MPI assignment you are asked to compare the performance against the
+OpenMP implementation. As you may not have succeeded or parallelised all three
+versions, an example solution is provided. In results you can find csvs for
+these three versions on input n = 999000000, iterations = 300
+P is processors, mean is the average Gflops/s, min is the slowest run,
+max is the fastest run.
+They were generated using omp_stencil.sh, omp_stencil_opt.sh, omp_stencil_avx2.sh
+See graph.tex for how you can generate a graph with
+error bars in Latex from these csvs. Using a different tool is of course
+also allowed.

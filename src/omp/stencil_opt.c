@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <immintrin.h>
+#include <omp.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
@@ -89,29 +90,33 @@ void Right(REAL **in, REAL **out, size_t n, int iterations)
 
 void StencilBlocked(REAL **in, REAL **out, size_t n, int iterations)
 {
-    REAL *inBuffer = malloc((SPACEBLOCK + 2 * iterations) * sizeof(REAL));
-    REAL *outBuffer = malloc((SPACEBLOCK + 2 * iterations) * sizeof(REAL));
+    #pragma omp parallel
+    {
+        REAL *inBuffer = malloc((SPACEBLOCK + 2 * iterations) * sizeof(REAL));
+        REAL *outBuffer = malloc((SPACEBLOCK + 2 * iterations) * sizeof(REAL));
 
-    for (size_t block = 0; block < n / SPACEBLOCK; block++) {
-        if (block == 0) {
-            memcpy(inBuffer, *in, (SPACEBLOCK + iterations) * sizeof(REAL));
-            Left(&inBuffer, &outBuffer, SPACEBLOCK, iterations);
-            memcpy(*out, outBuffer, SPACEBLOCK * sizeof(REAL));
-        } else if (block == n / SPACEBLOCK - 1) {
-            memcpy(inBuffer, *in + block * SPACEBLOCK - iterations,
-                    (SPACEBLOCK + iterations) * sizeof(REAL));
-            Right(&inBuffer, &outBuffer, SPACEBLOCK, iterations);
-            memcpy(*out + block * SPACEBLOCK, outBuffer + iterations, SPACEBLOCK * sizeof(REAL));
-        } else {
-            memcpy(inBuffer, *in + block * SPACEBLOCK - iterations,
-                    (SPACEBLOCK + 2 * iterations) * sizeof(REAL));
-            Middle(&inBuffer, &outBuffer, SPACEBLOCK, iterations);
-            memcpy(*out + block * SPACEBLOCK, outBuffer + iterations, SPACEBLOCK * sizeof(REAL));
+        #pragma omp for
+        for (size_t block = 0; block < n / SPACEBLOCK; block++) {
+            if (block == 0) {
+                memcpy(inBuffer, *in, (SPACEBLOCK + iterations) * sizeof(REAL));
+                Left(&inBuffer, &outBuffer, SPACEBLOCK, iterations);
+                memcpy(*out, outBuffer, SPACEBLOCK * sizeof(REAL));
+            } else if (block == n / SPACEBLOCK - 1) {
+                memcpy(inBuffer, *in + block * SPACEBLOCK - iterations,
+                        (SPACEBLOCK + iterations) * sizeof(REAL));
+                Right(&inBuffer, &outBuffer, SPACEBLOCK, iterations);
+                memcpy(*out + block * SPACEBLOCK, outBuffer + iterations, SPACEBLOCK * sizeof(REAL));
+            } else {
+                memcpy(inBuffer, *in + block * SPACEBLOCK - iterations,
+                        (SPACEBLOCK + 2 * iterations) * sizeof(REAL));
+                Middle(&inBuffer, &outBuffer, SPACEBLOCK, iterations);
+                memcpy(*out + block * SPACEBLOCK, outBuffer + iterations, SPACEBLOCK * sizeof(REAL));
+            }
         }
-    }
 
-    free(inBuffer);
-    free(outBuffer);
+        free(inBuffer);
+        free(outBuffer);
+    }
 }
 
 void Stencil(REAL **in, REAL **out, size_t n, int iterations)
