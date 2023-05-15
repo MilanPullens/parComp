@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#SBATCH --account=csmpi
+#SBATCH --account=csmpistud
 #SBATCH --ntasks=NTASKS
 #SBATCH --nodes=NODES
 #SBATCH --ntasks-per-node=8
