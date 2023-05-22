@@ -52,3 +52,12 @@ They were generated using omp_stencil.sh, omp_stencil_opt.sh, omp_stencil_avx2.s
 See graph.tex for how you can generate a graph with
 error bars in Latex from these csvs. Using a different tool is of course
 also allowed.
+
+# OpenCL
+You can ignore
+
+```
+[XRT] ERROR: No devices found
+```
+
+This has to do with the FPGA on cn132, which we do not use.
