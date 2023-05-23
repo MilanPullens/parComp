@@ -61,3 +61,4 @@ You can ignore
 ```
 
 This has to do with the FPGA on cn132, which we do not use.
+# parComp
