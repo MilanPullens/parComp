@@ -7,27 +7,27 @@
 #SBATCH --output=stencil.out
 
 # Compile on the machine, not the head node
-make bin/stencil_omp
+make bin/stencil_mpi
 make clean -C util
 make -C util
 
-printf "P,mean,min,max\n" > results/stencil.csv
+printf "P,mean,min,max\n" > results/mpi/stencil.csv
 
 for P in 1 2 4 8 16 32; do
     run=1
     while [ "$run" -le 10 ]; do
         {
-            OMP_NUM_THREADS="$P" bin/stencil_omp 33554432 256
+            mpirun -np "$P" ./bin/stencil_mpi 33554432 256
             printf "\n"
-        } >> results/stencil_temp.csv
+        } >> results/mpi/stencil_temp.csv
         run=$(( run + 1 ))
     done
 
     {
         printf "%s," "$P"
-        util/stat results/stencil_temp.csv
+        util/stat results/mpi/stencil_temp.csv
         printf "\n"
-    } >> results/stencil.csv
+    } >> results/mpi/stencil.csv
 
-    rm results/stencil_temp.csv
+    rm results/mpi/stencil_temp.csv
 done
